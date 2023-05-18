@@ -1,0 +1,14 @@
+pandas==2.0.1
+numpy==1.24.3
+matplotlib==3.7.1
+seaborn==0.12.2
+
+transformers==4.29.1
+sentencepiece==0.1.99
+pytorch-lightning==2.0.2
+wandb==0.15.2
+datasets==2.12.0
+protobuf==3.20.*
+
+torch -i https://download.pytorch.org/whl/cu118
+torchvision -i https://download.pytorch.org/whl/cu118
