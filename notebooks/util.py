@@ -1,6 +1,14 @@
 import math
+import random
+from typing import Any, Optional
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.lr_scheduler import _LRScheduler
+from pytorch_lightning.callbacks import Callback
+from PIL import Image
+from torchvision.transforms import ToPILImage
+import wandb
 
 
 class InverseSqrtScheduler(LambdaLR):
@@ -70,3 +78,25 @@ class CosineAnnealingWarmUpRestarts(_LRScheduler):
         self.last_epoch = math.floor(epoch)
         for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
             param_group['lr'] = lr
+ 
+class LogPredictionsCallback(Callback):
+    def __init__(self):
+        super().__init__()
+        self.random_index = None
+        self.to_pil = ToPILImage()
+
+    def on_validation_epoch_start(self, trainer, pl_module):
+        self.random_index = random.randint(0, len(trainer.val_dataloaders) - 1)
+    
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch: Any, batch_idx: int, dataloader_idx: int = 0):
+
+        if batch_idx == self.random_index:
+            n = 1
+            pixel_values, _, target_sequences = batch
+            images = [self.to_pil(img) for img in pixel_values[:n]]
+            # captions = [f'Ground Truth: {y_i}\nPrediction: {y_pred}' for y_i, y_pred in zip(target_sequences[:n], outputs[:n])]
+            
+            # trainer.logger.log_image(key='sample_images', images=images, caption=captions)
+            columns = ['image', 'ground truth', 'prediction']
+            data = [[wandb.Image(x_i), y_i, y_pred] for x_i, y_i, y_pred in list(zip(images, target_sequences[:n], outputs[:n]))]
+            trainer.logger.log_table(key='sample_table', columns=columns, data=data)
