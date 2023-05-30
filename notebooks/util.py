@@ -82,21 +82,27 @@ class CosineAnnealingWarmUpRestarts(_LRScheduler):
 class LogPredictionsCallback(Callback):
     def __init__(self):
         super().__init__()
-        self.random_index = None
+        self.random_indices = None
         self.to_pil = ToPILImage()
 
     def on_validation_epoch_start(self, trainer, pl_module):
-        self.random_index = random.randint(0, len(trainer.val_dataloaders) - 1)
+
+        self.random_indices = []
+        num_indices = 10
+        # math.ceil(len(trainer.val_dataloaders) * 0.005)
+
+        self.random_indices = list(random.sample(range(len(trainer.val_dataloaders)), num_indices))
     
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch: Any, batch_idx: int, dataloader_idx: int = 0):
 
-        if batch_idx == self.random_index:
+        if batch_idx in self.random_indices:
             n = 1
             pixel_values, _, target_sequences = batch
-            images = [self.to_pil(img) for img in pixel_values[:n]]
+            images = [self.to_pil(img) for img in pixel_values[0]]
+
             # captions = [f'Ground Truth: {y_i}\nPrediction: {y_pred}' for y_i, y_pred in zip(target_sequences[:n], outputs[:n])]
-            
             # trainer.logger.log_image(key='sample_images', images=images, caption=captions)
+
             columns = ['image', 'ground truth', 'prediction']
             data = [[wandb.Image(x_i), y_i, y_pred] for x_i, y_i, y_pred in list(zip(images, target_sequences[:n], outputs[:n]))]
             trainer.logger.log_table(key='sample_table', columns=columns, data=data)
