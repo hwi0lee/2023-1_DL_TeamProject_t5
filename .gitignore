@@ -1,2 +1,4 @@
 data/
 dataframes/
+wandb/
+lightning_logs/
